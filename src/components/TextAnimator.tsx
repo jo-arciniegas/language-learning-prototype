@@ -21,8 +21,8 @@ export interface TextAnimatorPropTypes {
   style?: StyleProp<ViewStyle> | undefined;
   textStyle?: StyleProp<TextStyle> | undefined;
   duration?: number;
-  overlayTextColor?: ColorValue | undefined;
-  textColor?: ColorValue | undefined;
+  overlayTextColor?: string | undefined;
+  textColor?: string | undefined;
 
 }
 
@@ -33,17 +33,26 @@ const DEFAULT_TEXT_COLOR = "#808080";
 const TextAnimator = (props: TextAnimatorPropTypes) => {
     const [textArr, setTextArr] = useState<string[]>([]);
     const animatedValuesRef = useRef<Animated.Value[]>([]);
+    const animatedValuesMapsRef = useRef<any[]>([]);
     const animationsRef = useRef<any[]>([]);
+
+    const textColor = props.textColor || DEFAULT_TEXT_COLOR;
+    const overlayTextColor = props.overlayTextColor || DEFAULT_OVERLAY_TEXT_COLOR;
 
     useEffect(() => {
         animationsRef.current = [];
         animatedValuesRef.current = [];
+        animatedValuesMapsRef.current = [];
         const textArr = props.content.trim().split(' ');
         textArr.forEach((_, i) => {
             animatedValuesRef.current[i] = new Animated.Value(0);
+            animatedValuesMapsRef.current[i] = animatedValuesRef.current[i].interpolate({
+                inputRange: [0, 1],
+                outputRange: [textColor, overlayTextColor]
+            });
         });
         setTextArr(textArr);
-    }, [props.content])
+    }, [props.content, props.textColor, props.overlayTextColor])
 
     useEffect(() => {
         onAnimate(1);
@@ -56,10 +65,10 @@ const TextAnimator = (props: TextAnimatorPropTypes) => {
           return Animated.timing(animatedValuesRef.current[i], {
               toValue,
               duration: duration,
-              useNativeDriver: true
+              useNativeDriver: false
           });
         });
-        Animated.stagger(600, animationsRef.current).start((finished) => {
+        Animated.stagger(300, animationsRef.current).start((finished) => {
           // setTimeout(() => onAnimate(toValue === 0 ? 1 : 0), 1000)
           if (finished) {
             console.log('animation done');
@@ -69,25 +78,19 @@ const TextAnimator = (props: TextAnimatorPropTypes) => {
         });
         setTimeout(() => {
              props.onFinish?.();   
-        }, duration + (600*textArr.length));
+        }, duration + (300*textArr.length));
       }
 
-  const textColor = props.textColor || DEFAULT_TEXT_COLOR;
-  const overlayTextColor = props.overlayTextColor || DEFAULT_OVERLAY_TEXT_COLOR;
-
   return (
-    <View style={[props.style]}>
-        <Text style={[props.textStyle, {color: textColor}]}>{props.content}</Text>
-        <View style={styles.textOverlay}>
-            {textArr.map((v, i) => {
+    <View style={[props.style, styles.textContainer]}>
+        {textArr.map((v, i) => {
             return (
                 <Animated.Text
                     key={`${v}-${i}`}
                     style={[
                         props.textStyle,
                         {
-                            opacity: animatedValuesRef.current[i],
-                            color: overlayTextColor
+                            color: animatedValuesMapsRef.current[i]
                         },
                     ]}>
                     {v}
@@ -95,7 +98,6 @@ const TextAnimator = (props: TextAnimatorPropTypes) => {
                 </Animated.Text>
             );
             })}
-        </View>
       </View>
   );
 };
@@ -104,12 +106,8 @@ const styles = StyleSheet.create({
     textWrapper: {
         color: '#000'
     },
-    textOverlay: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        right: 0,
-        bottom: 0,
+    textContainer: {
+        width: '100%',
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',

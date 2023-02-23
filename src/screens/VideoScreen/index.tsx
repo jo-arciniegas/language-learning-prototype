@@ -63,21 +63,10 @@ export const VideoScreen: React.FC<Props> = props => {
     useState(false);
     const [wrongAnswerPopupVisible, setWrongAnswerPopupVisible] =
     useState(false);
-  const [videoPaused, setVideoPaused] = useState(false);
+  const [videoPaused, setVideoPaused] = useState(true);
 
   useEffect(() => {
-    const showTopPopupTimeout = setTimeout(() => {
-      setQuestionPopupVisible(true);
-    }, 3000);
-    const showRequestAnswerPopupTimeOut = setTimeout(() => {
-      setQuestionPopupVisible(false);
-      setRequestAnswerQuestionPopupVisible(true);
-      setVideoPaused(true);
-    }, 7000);
-    return () => {
-      clearTimeout(showTopPopupTimeout);
-      clearTimeout(showRequestAnswerPopupTimeOut);
-    };
+    
   }, []);
 
   const onRecord = () => {
@@ -117,6 +106,15 @@ export const VideoScreen: React.FC<Props> = props => {
 
   const handleLoadedMetadata = (props: any) => {
     setVideoDuration(props.duration);
+    setVideoPaused(false);
+    setTimeout(() => {
+      setQuestionPopupVisible(true);
+    }, 3000);
+    setTimeout(() => {
+      setQuestionPopupVisible(false);
+      setRequestAnswerQuestionPopupVisible(true);
+      setVideoPaused(true);
+    }, 7000);
   };
 
   return (
@@ -126,6 +124,7 @@ export const VideoScreen: React.FC<Props> = props => {
         source={require('../../videos/demo_video.mov')}
         ref={videoEl} 
         onLoad={handleLoadedMetadata}
+        resizeMode="cover"
         onProgress={(params: {
           currentTime: number;
           playableDuration: number;
@@ -226,7 +225,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     paddingHorizontal: 20,
-    marginTop: 20,
+    marginTop: 10,
   },
   questionPopup: {
     marginHorizontal: 20,

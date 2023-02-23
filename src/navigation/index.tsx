@@ -24,8 +24,12 @@ export default function Navigator() {
     <NavigationContainer
     >
       <Stack.Navigator initialRouteName="Home">
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Video" component={VideoScreen} />
+          <Stack.Screen name="Home" options={{
+            headerShown: false,
+          }} component={HomeScreen} />
+          <Stack.Screen name="Video" options={{
+            headerShown: false,
+          }} component={VideoScreen} />
         </Stack.Navigator>
     </NavigationContainer>
   );
