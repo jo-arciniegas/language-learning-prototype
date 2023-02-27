@@ -8,6 +8,7 @@
 
 import React, { useRef } from 'react';
 import {
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -37,20 +38,39 @@ import {RootStackParamList} from '../../navigation/types';
 import RightAnswerPopup from '../../components/RightAnswerPopup';
 import WrongAnswerPopup from '../../components/WrongAnswerPopup';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
+import CourseService from '../../services/course';
+import QaService from '../../services/qa';
+var RNFetchBlob = require('rn-fetch-blob').default
 
 const audioRecorderPlayer = new AudioRecorderPlayer();
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Video'>;
 
+
+
 export const VideoScreen: React.FC<Props> = props => {
   const isDarkMode = useColorScheme() === 'dark';
   const videoEl = useRef<any>(null);
+
+  const dirs = useRef(RNFetchBlob.fs.dirs).current;
+
+  const path = useRef(Platform.select({
+    ios: 'awnser_audio.m4a',
+    android: `${dirs.CacheDir}/awnser_audio.mp3`,
+  })).current;
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
     width: '100%',
     height: '100%',
   };
+
+  const [course, setCourse] = useState(null);
+  const [qa, setQa] = useState<any>(null);
+  const [rightAnswer, setRightAnswer] = useState<any>(null);
+  const [wrongAnswer, setWrongAnswer] = useState<any>(null);
+  const currentAnswerAudioPathRef = useRef<string|null>(null);
+
 
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
@@ -66,8 +86,42 @@ export const VideoScreen: React.FC<Props> = props => {
   const [videoPaused, setVideoPaused] = useState(true);
 
   useEffect(() => {
-    
+    onGetCourse();
+    onGetQa();
   }, []);
+
+  useEffect(() => {
+    if(qa){
+      const rightAs = qa.attributes?.answer?.find((ele: any) => ele.isCorrect === true);
+      const wrongAs = qa.attributes?.answer?.find((ele: any) => ele.isCorrect === false);
+      setRightAnswer(rightAs);
+      setWrongAnswer(wrongAs);
+    } 
+    else{
+      setRightAnswer(null);
+      setWrongAnswer(null);
+    }
+  }, [qa]);
+
+  const onGetCourse = async () => {
+    const rs :any = await CourseService.getCourses();
+    if(rs.data.length > 0){
+      setCourse(rs.data[0]);
+    }
+    else {
+      setCourse(null);
+    }
+  }
+
+  const onGetQa = async () => {
+    const rs: any = await QaService.getQas();
+    if(rs.data.length > 0){
+      setQa(rs.data[0]);
+    }
+    else {
+      setQa(null);
+    }
+  }
 
   const onRecord = () => {
     setRequestAnswerQuestionPopupVisible(false);
@@ -79,19 +133,28 @@ export const VideoScreen: React.FC<Props> = props => {
     onStopRecord();
     // call api here
     setTimeout(() => {
-        setVideoPaused(false);
         setAnswerProgressPopupVisible(false);
-        setRightAnswerPopupVisible(true);
+        if(Math.floor(Math.random() * 10) < 50){
+          setRightAnswerPopupVisible(true);
+        }
+        else {
+          setWrongAnswerPopupVisible(true);
+        }
     }, 3000);
   }
 
   const onRightAnswerNext = () => {
+    setVideoPaused(false);
     setRightAnswerPopupVisible(false);
-    setWrongAnswerPopupVisible(true);
+  }
+
+  const onTryAgain = () => {
+    setRequestAnswerQuestionPopupVisible(true);
+    setWrongAnswerPopupVisible(false);
   }
 
   const onStartRecord = async () => {
-    const result = await audioRecorderPlayer.startRecorder();
+    const result = await audioRecorderPlayer.startRecorder(path);
     audioRecorderPlayer.addRecordBackListener((e) => {
         return;
       });
@@ -101,8 +164,14 @@ export const VideoScreen: React.FC<Props> = props => {
   const onStopRecord = async () => {
     const result = await audioRecorderPlayer.stopRecorder();
     audioRecorderPlayer.removeRecordBackListener();
-    console.log('onStopRecord: ' + JSON.stringify(result));
+    console.log('onStopRecord: ' + result);
+    currentAnswerAudioPathRef.current = result;
   };
+
+  const onListenAgain = async () => {
+    const msg = await audioRecorderPlayer.startPlayer(path);
+    console.log('onListenAgain: ' + msg);
+  }
 
   const handleLoadedMetadata = (props: any) => {
     setVideoDuration(props.duration);
@@ -155,7 +224,7 @@ export const VideoScreen: React.FC<Props> = props => {
         <QuestionPopup
           visible={questionPopupVisible}
           style={styles.questionPopup}
-          title={'Hola, ¿cómo están tú y tu familia estos días?'}
+          title={qa?.attributes?.question || ''}
           content={'Hi, how are you and your family these days?'}
         />
       </SafeAreaView>
@@ -165,7 +234,7 @@ export const VideoScreen: React.FC<Props> = props => {
             visible={requestAnswerPopupVisible}
             style={styles.questionPopup}
             onRecord={onRecord}
-            title="La estamos haciendo muy bien."
+            title={rightAnswer?.answer || ''}
             content="We are doing very well"
           />
         )}
@@ -173,7 +242,7 @@ export const VideoScreen: React.FC<Props> = props => {
           <AnswerProgressPopup
             visible={answerProgressPopupVisible}
             style={styles.questionPopup}
-            title="La estamos haciendo muy bien."
+            title={rightAnswer?.answer || ''}
             onFinish={onAnswerFinish}
           />
         )}
@@ -182,14 +251,16 @@ export const VideoScreen: React.FC<Props> = props => {
                 onNext={onRightAnswerNext}
                 visible={rightAnswerPopupVisible}
                 style={styles.questionPopup}
-                title="La estamos haciendo muy bien."
+                title={rightAnswer?.answer || ''}
             />
         )}
         {wrongAnswerPopupVisible && (
             <WrongAnswerPopup
+                onTryAgain={onTryAgain}
+                onListenAgain={onListenAgain}
                 visible={wrongAnswerPopupVisible}
                 style={styles.questionPopup}
-                title="Estamos muy ocupados estos días. Pero me encanta"
+                title={wrongAnswer?.answer || ''}
             />
         )}
       </View>

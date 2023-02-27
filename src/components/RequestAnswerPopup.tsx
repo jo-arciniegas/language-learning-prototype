@@ -40,7 +40,7 @@ const RequestAnswerPopup = (props: RequestAnswerPopupPropTypes) => {
             <Text style={styles.header}>{props.title}</Text>
             <Text style={styles.content}>{props.content}</Text>
           </View>
-          <View style={{width: 4}}></View>
+          <View style={{width: 22}}></View>
         </View>
       </View>
       <View style={{width: '100%', alignItems: 'center', marginTop: -30}}>

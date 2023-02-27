@@ -18,6 +18,8 @@ export interface WrongAnswerPopupPropTypes {
   style?: StyleProp<ViewStyle> | undefined;
   title: string;
   visible?: boolean;
+  onListenAgain?: () => void;
+  onTryAgain?: () => void;
 }
 
 const WrongAnswerPopup = (props: WrongAnswerPopupPropTypes) => {
@@ -41,11 +43,12 @@ const WrongAnswerPopup = (props: WrongAnswerPopupPropTypes) => {
             <View style={styles.titleBg}>
               <Text style={styles.header}> {props.title} </Text>
             </View>
-            <View style={{width: 4}}></View>
+            <View style={{width: 22}}></View>
           </View>
           <View
             style={styles.yourAnswerContainer}>
             <TouchableOpacity
+              onPress={props.onListenAgain}
               style={styles.yourAnswerBtn}>
               <View style={[styles.row]}>
                 <Text
@@ -58,7 +61,7 @@ const WrongAnswerPopup = (props: WrongAnswerPopupPropTypes) => {
           </View>
         </View>
         <View style={styles.bottom}>
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity style={styles.button} onPress={props.onTryAgain}>
             <View style={styles.row}>
               <ReTrySvg />
               <Text style={styles.buttonText}>TRY AGAIN</Text>
