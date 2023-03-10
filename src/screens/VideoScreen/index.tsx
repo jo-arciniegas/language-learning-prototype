@@ -40,6 +40,8 @@ import WrongAnswerPopup from '../../components/WrongAnswerPopup';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import CourseService from '../../services/course';
 import QaService from '../../services/qa';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../models/store';
 var RNFetchBlob = require('rn-fetch-blob').default
 
 const audioRecorderPlayer = new AudioRecorderPlayer();
@@ -64,8 +66,7 @@ export const VideoScreen: React.FC<Props> = props => {
     width: '100%',
     height: '100%',
   };
-
-  const [course, setCourse] = useState(null);
+  const qaIndexRef = useRef<number>(-1);
   const [qa, setQa] = useState<any>(null);
   const [rightAnswer, setRightAnswer] = useState<any>(null);
   const [wrongAnswer, setWrongAnswer] = useState<any>(null);
@@ -85,10 +86,25 @@ export const VideoScreen: React.FC<Props> = props => {
     useState(false);
   const [videoPaused, setVideoPaused] = useState(true);
 
+  const listQa = useSelector((state: RootState) => state.qa.data);
+
   useEffect(() => {
-    onGetCourse();
-    onGetQa();
-  }, []);
+    if(listQa.length > 0){
+      qaIndexRef.current = 0;
+    }
+  }, [listQa]);
+
+  useEffect(() => {
+    if(qaIndexRef.current < listQa.length && qaIndexRef.current > -1) {
+      const selectedQa = listQa[qaIndexRef.current];
+      setQa(selectedQa);
+      onStartingShowQa();
+    }
+    else {
+      setQa(null);
+      onHideAllPopup();
+    }
+  }, [qaIndexRef.current]);
 
   useEffect(() => {
     if(qa){
@@ -103,30 +119,13 @@ export const VideoScreen: React.FC<Props> = props => {
     }
   }, [qa]);
 
-  const onGetCourse = async () => {
-    const rs :any = await CourseService.getCourses();
-    if(rs.data.length > 0){
-      setCourse(rs.data[0]);
-    }
-    else {
-      setCourse(null);
-    }
-  }
-
-  const onGetQa = async () => {
-    const rs: any = await QaService.getQas();
-    if(rs.data.length > 0){
-      setQa(rs.data[0]);
-    }
-    else {
-      setQa(null);
-    }
-  }
-
   const onRecord = () => {
     setRequestAnswerQuestionPopupVisible(false);
     setAnswerProgressPopupVisible(true);
     onStartRecord();
+    setTimeout(() => {
+      onAnswerFinish();
+    }, 3000)
   };
 
   const onAnswerFinish = () => {
@@ -145,7 +144,9 @@ export const VideoScreen: React.FC<Props> = props => {
 
   const onRightAnswerNext = () => {
     setVideoPaused(false);
-    setRightAnswerPopupVisible(false);
+    // setRightAnswerPopupVisible(false);
+    //setQa(null)
+    qaIndexRef.current += 1;
   }
 
   const onTryAgain = () => {
@@ -176,6 +177,20 @@ export const VideoScreen: React.FC<Props> = props => {
   const handleLoadedMetadata = (props: any) => {
     setVideoDuration(props.duration);
     setVideoPaused(false);
+  };
+
+  const onHideAllPopup = () => {
+    setAnswerProgressPopupVisible(false)
+    setRightAnswerPopupVisible(false)
+    setWrongAnswerPopupVisible(false)
+    setQuestionPopupVisible(false);
+    setRequestAnswerQuestionPopupVisible(false);
+  }
+
+  const onStartingShowQa = () => {
+    setAnswerProgressPopupVisible(false)
+    setRightAnswerPopupVisible(false)
+    setWrongAnswerPopupVisible(false)
     setTimeout(() => {
       setQuestionPopupVisible(true);
     }, 3000);
@@ -184,7 +199,7 @@ export const VideoScreen: React.FC<Props> = props => {
       setRequestAnswerQuestionPopupVisible(true);
       setVideoPaused(true);
     }, 7000);
-  };
+  }
 
   return (
     <View style={backgroundStyle}>
@@ -238,31 +253,24 @@ export const VideoScreen: React.FC<Props> = props => {
             content="We are doing very well"
           />
         )}
-        {answerProgressPopupVisible && (
-          <AnswerProgressPopup
+        <AnswerProgressPopup
             visible={answerProgressPopupVisible}
             style={styles.questionPopup}
             title={rightAnswer?.answer || ''}
-            onFinish={onAnswerFinish}
           />
-        )}
-        {rightAnswerPopupVisible && (
-            <RightAnswerPopup
+        <RightAnswerPopup
                 onNext={onRightAnswerNext}
                 visible={rightAnswerPopupVisible}
                 style={styles.questionPopup}
                 title={rightAnswer?.answer || ''}
             />
-        )}
-        {wrongAnswerPopupVisible && (
-            <WrongAnswerPopup
+        <WrongAnswerPopup
                 onTryAgain={onTryAgain}
                 onListenAgain={onListenAgain}
                 visible={wrongAnswerPopupVisible}
                 style={styles.questionPopup}
                 title={wrongAnswer?.answer || ''}
             />
-        )}
       </View>
     </View>
   );

@@ -53,7 +53,6 @@ const AnswerProgressPopup = (props: AnswerProgressPopupPropTypes) => {
             <View style={{flex: 1}}>
               <TextAnimator 
                     duration={3000}
-                    onFinish={props.onFinish}
                     textColor="#808080"
                     overlayTextColor="#2E35D6"
                     textStyle={styles.header} 

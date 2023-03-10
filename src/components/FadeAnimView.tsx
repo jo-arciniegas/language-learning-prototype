@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { ViewStyle } from "react-native";
-import { Animated } from "react-native";
+import React, {useEffect, useRef} from 'react';
+import {View, ViewStyle} from 'react-native';
+import {Animated} from 'react-native';
 
 const DEFAULT_DURATION = 300;
 
@@ -20,18 +20,30 @@ const FadeAnimView = ({
   useNativeDriver = true,
 }: FadeAnimViewProps) => {
   const fadeAnim = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const [isFinishAnimation, setIsFinishAnimation] = React.useState(true);
 
   useEffect(() => {
+    setIsFinishAnimation(false);
     Animated.timing(fadeAnim, {
       toValue: visible ? 1 : 0,
       duration: duration,
       useNativeDriver: useNativeDriver,
-    }).start();
+    }).start(finished => {
+      if (finished) {
+        setIsFinishAnimation(true);
+      }
+    });
   }, [visible]);
 
   return (
-    <Animated.View style={{ ...style, opacity: fadeAnim }}>
-      {children}
+    <Animated.View
+      pointerEvents={visible ? "auto" : "none"}
+      style={{...style, opacity: fadeAnim}}>
+      {isFinishAnimation && !visible ? (
+        <></>
+      ) : (
+        <View>{children}</View>
+      )}
     </Animated.View>
   );
 };

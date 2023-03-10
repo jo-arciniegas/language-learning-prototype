@@ -5,6 +5,16 @@ import {Provider} from 'react-redux';
 import {store} from './src/models/store';
 
 export default function App() {
+
+  React.useEffect(() => {
+    loadRequireData();
+  }, [])
+
+  const loadRequireData = () => {
+    store.dispatch.qa.getDataAsync();
+    store.dispatch.course.getDataAsync();
+  }
+
   return (
     <>
       <Provider store={store}>
