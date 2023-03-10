@@ -15,7 +15,7 @@ export const qa = createModel<RootModel>()({
     updateData(state, payload: Array<any>) {
       return {
         ...state,
-        data: payload.concat(payload).concat(payload),
+        data: payload,
       };
     },
   },
